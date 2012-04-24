@@ -1,4 +1,5 @@
 import util.parsing.combinator._
+import java.io.File
 
 // See http://www.w3.org/TR/css3-syntax/#grammar0
 class SimpleCSSParser extends JavaTokenParsers {
@@ -36,7 +37,7 @@ class SimpleCSSParser extends JavaTokenParsers {
   def DIMEN = decimalNumber ~ ident
   def PERCENTAGE = decimalNumber ~ "%"
   def NUMBER = decimalNumber | "\\" ~ decimalNumber
-  def URI = "url\\(.*?\\)".r ^^ (URL(_))
+  def URI = "url\\(.*\\)".r ^^ (URL(_))
   override def stringLiteral = super.stringLiteral | "\\\\?'[^']*\\\\?'".r |  "\\\\?\"[^\"]*\\\\?\"".r
 
   def hexcolor = "#(?:[0-9A-Fa-f]{3}){1,2}".r
@@ -82,10 +83,10 @@ class SimpleCSSParser extends JavaTokenParsers {
 case class URL(url: String) {
   val UrlPattern = "url\\(['\"]*(.*?)['\"]*\\)".r
   val AbsolutePattern = """^(?:(?:http|ftp|https|spdy)://|/)""".r
-  def rewrite: String = url match {
+  def rewrite(prefix: String): String = url match {
     case UrlPattern(innerUrl) => innerUrl match {
       case AbsolutePattern() => url
-      case _ => "url('" + "/rewrite!" + innerUrl + "')"
+      case _ => "url('" + prefix + innerUrl + "')"
     }
   }
 }
@@ -95,9 +96,33 @@ case class NeedsSpace(token: Any)
 
 
 object Main extends SimpleCSSParser {
+  var prefix: String = ""
+
   def main(args: Array[String]) {
-    val result = parseAll(stylesheet, io.Source.stdin.getLines().mkString("\n"))
+    val prefixIndex = args.zipWithIndex filter {case (arg, idx) => arg == "-t"}
+    val target = if (prefixIndex.length > 0)
+      Some(args(prefixIndex(0)._2 + 1))
+    else
+      None
+
+    val input = if (args.length > 0 && args(0) != "-t") {
+      this.prefix = computePrefix(args(0), target)
+      io.Source.fromFile(new File(args(0)).get)
+    } else {
+      io.Source.stdin
+    }
+
+    val result = parseAll(stylesheet, input.getLines().mkString("\n"))
     print(flatResultList(result).mkString(""))
+  }
+
+  def computePrefix(sourceFile: String, target: Option[String]) = target match {
+    case Some(target) => {
+      new File(target)
+      println(target)
+      ""
+    }
+    case None => ""
   }
 
   def flatResultList(result: Any): List[String] = result match {
@@ -111,7 +136,7 @@ object Main extends SimpleCSSParser {
 
 
     /* Put any rewrite rule here, and annotate the above tokens with ^^ to do it. */
-    case url: URL => List(url.rewrite)
+    case url: URL => List(url.rewrite(this.prefix))
     case needsSpace: NeedsSpace => flatResultList(needsSpace.token) ++ List(" ")
 
   }

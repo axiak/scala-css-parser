@@ -1,0 +1,76 @@
+<project name="CSSRewriter" default="dist" basedir=".">
+  <property
+      name="base.dir" value="."/>
+  <property
+      name="sources.dir"
+      value="${base.dir}/src"
+      />
+  <property
+      name="scala.home"
+      value="/opt/scala"
+      />
+  <property
+      name="build.dir"
+      value="${base.dir}/build"
+      />
+  <property
+      name="dist.dir"
+      value="${base.dir}/dist"
+      />
+  <taskdef resource="proguard/ant/task.properties"
+         classpath="/opt/proguard4.7/lib/proguard.jar" />
+  <target name="init">
+    <property
+      name="scala-library.jar"
+      value="${scala.home}/lib/scala-library.jar"
+       />
+    <path id="build.classpath">
+      <pathelement location="${scala-library.jar}"   />
+      <!--<pathelement location="${your.path}"   />-->
+      <pathelement location="${build.dir}"   />
+    </path>
+    <taskdef resource="scala/tools/ant/antlib.xml">
+      <classpath>
+        <pathelement location="${scala.home}/lib/scala-compiler.jar"   />
+        <pathelement location="${scala-library.jar}"   />
+      </classpath>
+    </taskdef>
+  </target>
+
+  <target name="build" depends="init">
+    <mkdir dir="${build.dir}" />
+    <scalac srcdir="${sources.dir}"
+            destdir="${build.dir}"
+            classpathref="build.classpath"/>
+  </target>
+
+  <target name="makejar" depends="build">
+    <mkdir dir="${dist.dir}"/>
+    <jar jarfile="${dist.dir}/CSSRewrite-unwrapped.jar" basedir="${build.dir}">
+      <manifest>
+        <attribute name="Main-Class"
+                   value="Main"/>
+      </manifest>
+    </jar>
+  </target>
+
+  <target name="dist" depends="makejar">
+    <proguard>
+      -libraryjars ${java.home}/lib/rt.jar
+      -injars     ${dist.dir}/CSSRewrite-unwrapped.jar
+      -injars     ${scala.home}/lib/scala-library.jar
+      -outjars    ${dist.dir}/CSSRewrite.jar
+
+      -keepclasseswithmembers public class * {
+          public static void main(java.lang.String[]);
+      }
+
+
+      -dontwarn scala.**
+
+      -keep class * extends scala.runtime.MethodCache {
+          public &lt;methods&gt;;
+      }
+    </proguard>
+  </target>
+</project>
