@@ -67,7 +67,7 @@ class SimpleCSSParser extends JavaTokenParsers {
   def ruleset = rep1(selector) ~ declaration_body
   def property = ident
   def font_face = FONT_FACE_SYM ~ declaration_body
-  def moz_document = "@-moz-document" ~ opt(function) ~ declaration_body
+  def moz_document = "@-moz-document" ~ opt(function) ~ "{" ~ rep(ruleset) ~ "}"
   def pseudo_page = ":" ~ ident
   def medium = ident
   def page = PAGE_SYM ~ opt(ident) ~ opt(pseudo_page) ~ "{" ~ rep1sep(declaration, ",") ~ "}"
