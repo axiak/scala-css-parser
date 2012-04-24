@@ -1,6 +1,4 @@
-import annotation.tailrec
 import util.parsing.combinator._
-
 
 // See http://www.w3.org/TR/css3-syntax/#grammar0
 class SimpleCSSParser extends JavaTokenParsers {
@@ -38,14 +36,14 @@ class SimpleCSSParser extends JavaTokenParsers {
   def DIMEN = decimalNumber ~ ident
   def PERCENTAGE = decimalNumber ~ "%"
   def NUMBER = decimalNumber | "\\" ~ decimalNumber
-  def URI = "url\\((.*?)\\)".r
-  override def stringLiteral = super.stringLiteral | "'[^']*'".r
+  def URI = "url\\(.*?\\)".r ^^ (URL(_))
+  override def stringLiteral = super.stringLiteral | "\\\\?'[^']*\\\\?'".r |  "\\\\?\"[^\"]*\\\\?\"".r
 
   def hexcolor = "#(?:[0-9A-Fa-f]{3}){1,2}".r
   def function = "[a-zA-Z:._0-9-]+\\(".r ~ funcexpr ~ ")"
   def unary_operator = "-" | "+"
-  def term: Parser[Any] = unary_operator | PERCENTAGE | LENGTH | EMS | EXS | ANGLE |
-                          TIME | FREQ | URI | hexcolor | stringLiteral | NUMBER | function | ident
+  def term: Parser[Any] = (unary_operator | PERCENTAGE | LENGTH | EMS | EXS | ANGLE |
+                          TIME | FREQ | URI | hexcolor | stringLiteral | NUMBER | function | ident) ^^ (NeedsSpace(_))
   def expr = rep1(term ~ opt(operator))
 
   // This is an extension of the css spec to allow filter: alpha(opacity=xx) syntax (kwargs).
@@ -56,56 +54,66 @@ class SimpleCSSParser extends JavaTokenParsers {
   def declaration = property ~ ":" ~ expr ~ opt(prio)
   def pseudo = ":" ~ opt((ident ~ "(" ~ (HASH | class_ | ident) ~ ")") | ident)
   def attrib = "[" ~ ident ~ opt(opt("=" | INCLUDES | DASHMATCH) ~ (ident | stringLiteral)) ~ "]"
-  // The @ is for @-moz-document
   def element_name = "*" | ident
   def class_ = "." ~ ident
   def HASH = "#" ~ ident
   def selector_modifier = HASH | class_ | attrib | pseudo
   def simple_selector = (element_name ~ rep(selector_modifier)) | (rep1(selector_modifier))
   def selector = simple_selector ~ opt(combinator | ",")
-  def declaration_body = "{" ~ repsep(declaration, rep1(";")) ~ rep(";") ~ "}"
+  def declaration_body = "{" ~ repsep(declaration, rep1(";")) ~ rep(";")  ~ "}"
   def ruleset = rep1(selector) ~ declaration_body
   def property = ident
   def font_face = FONT_FACE_SYM ~ declaration_body
-  def moz_document = "@-moz-document" ~ opt(function) ~ "{" ~ rep(ruleset) ~ "}"
+  def moz_document = ("@-moz-document" ^^ (NeedsSpace(_))) ~ opt(function) ~ "{" ~ rep(ruleset) ~ "}"
   def pseudo_page = ":" ~ ident
   def medium = ident
-  def page = PAGE_SYM ~ opt(ident) ~ opt(pseudo_page) ~ "{" ~ rep1sep(declaration, ",") ~ "}"
-  def media = MEDIA_SYM ~ rep1sep(medium, ",") ~ "{" ~ rep(ruleset) ~ "}"
+  def page = (PAGE_SYM ^^ (NeedsSpace(_))) ~ opt(ident) ~ opt(pseudo_page) ~ "{" ~ rep1sep(declaration, ",") ~ "}"
+  def media = (MEDIA_SYM ^^ (NeedsSpace(_))) ~ rep1sep(medium, ",") ~ "{" ~ rep(ruleset) ~ "}"
   def namespace_prefix = ident
-  def namespace = NAMESPACE_SYM ~ opt(namespace_prefix) ~ opt(stringLiteral | URI) ~ ";"
-  def import_ = IMPORT_SYM ~ (stringLiteral | URI) ~ repsep(medium, ",") ~ ";"
-  def stylesheet = opt(CHARSET_SYM ~ stringLiteral ~ ";") ~
+  def namespace = (NAMESPACE_SYM  ^^ (NeedsSpace(_)))  ~ opt(namespace_prefix) ~ opt(stringLiteral | URI) ~ ";"
+  def import_ = (IMPORT_SYM ^^ (NeedsSpace(_))) ~ (stringLiteral | URI) ~ repsep(medium, ",") ~ ";"
+  def stylesheet = opt((CHARSET_SYM^^ (NeedsSpace(_))) ~ stringLiteral ~ ";") ~
                    rep(import_) ~ rep(namespace)  ~
                    rep(media | page | font_face | moz_document | ruleset)
 
 
-
-
-
-
-  //def declaration = selector ~ "{" ~ repsep(attribute, ";") ~ "}"
-  def document = declaration*
-  def attribute = "[^\\}]+".r
-  /*
-  val urlPiece = [^)]+""".r
-  val url = "url(" ~ urlPiece ~ ")"
- */
 }
+
+case class URL(url: String) {
+  val UrlPattern = "url\\(['\"]*(.*?)['\"]*\\)".r
+  val AbsolutePattern = """^(?:(?:http|ftp|https|spdy)://|/)""".r
+  def rewrite: String = url match {
+    case UrlPattern(innerUrl) => innerUrl match {
+      case AbsolutePattern() => url
+      case _ => "url('" + "/rewrite!" + innerUrl + "')"
+    }
+  }
+}
+
+
+case class NeedsSpace(token: Any)
+
 
 object Main extends SimpleCSSParser {
   def main(args: Array[String]) {
     val result = parseAll(stylesheet, io.Source.stdin.getLines().mkString("\n"))
-    printResult(result)
+    print(flatResultList(result).mkString(""))
   }
 
-  //@tailrec
-  def printResult(result: ParseResult[Any]) = {
-    println(result)
-    val r = result.get
-    println(r.getClass())
+  def flatResultList(result: Any): List[String] = result match {
+    case a: Some[Any] => flatResultList(a.get)
+    case a: ParseResult[Any] => flatResultList(a.get)
+    case a: ~[Any, Any] => flatResultList(a._1) ++ flatResultList(a._2)
+    case a :: rest => flatResultList(a) ++ flatResultList(rest)
+    case a: String => List(a)
+    case None => List()
+    case List() => List()
+
+
+    /* Put any rewrite rule here, and annotate the above tokens with ^^ to do it. */
+    case url: URL => List(url.rewrite)
+    case needsSpace: NeedsSpace => flatResultList(needsSpace.token) ++ List(" ")
 
   }
-
 }
 
