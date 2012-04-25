@@ -65,7 +65,7 @@
           public static void main(java.lang.String[]);
       }
 
-
+      -dontwarn *$$anonfun$*
       -dontwarn scala.**
 
       -keep class * extends scala.runtime.MethodCache {
