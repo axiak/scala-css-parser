@@ -60,7 +60,8 @@ class SimpleCSSParser extends JavaTokenParsers {
   def prio = IMPORTANT_SYM
   def declaration = property ~ ":" ~ expr ~ opt(prio)
   def transform_declaration = """(?i)(?:from|to)""".r ~ "{" ~ rep1(declaration ~ rep(";")) ~ "}"
-  def pseudo = ":" ~ opt((ident ~ "(" ~ (HASH | class_ | ident | NUMBER | (":" ~ ident)) ~ ")") | ident)
+  def nth_expr = ("\\d+".r ~ "n" ~ opt(("+" | "-") ~ "\\d+".r)) | (opt("\\d+".r ~ "n") ~ ("+" | "-") ~ "\\d+".r) | "\\d+".r
+  def pseudo = ":" ~ opt((ident ~ "(" ~ (HASH | class_ | ident | nth_expr | (":" ~ ident)) ~ ")") | ident)
   def attrib = "[" ~ ident ~ opt(opt("=" | INCLUDES | DASHMATCH) ~ (ident | stringLiteral)) ~ "]"
   def element_name = "*" | ident | "/**/"
   def class_ = "." ~ ident
