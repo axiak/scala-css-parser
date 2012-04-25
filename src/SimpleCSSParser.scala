@@ -146,8 +146,13 @@ object Main extends SimpleCSSParser {
   }
 
   @tailrec
-  def computePrefix(sourceDir: List[String], target: List[String], acc: List[String] = List()): List[String] = (sourceDir, target) match {
-    case (shead :: srest, thead :: trest) => if (shead == thead) computePrefix(srest, trest, acc) else computePrefix(srest, trest, ".." :: acc ::: List(shead))
+  def computePrefix(sourceDir: List[String], target: List[String], acc: List[String] = List()):
+            List[String] = (sourceDir, target) match {
+    case (shead :: srest, thead :: trest) =>
+       if (shead == thead)
+         computePrefix(srest, trest, acc)
+       else
+         computePrefix(srest, trest, ".." :: acc ::: List(shead))
     case (Nil, thead :: trest) => computePrefix(Nil, trest, ".." :: acc)
     case (shead :: srest, Nil) => computePrefix(srest, Nil, acc ::: List(shead))
     case (Nil, Nil) => acc
