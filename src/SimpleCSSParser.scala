@@ -113,27 +113,50 @@ object Main extends SimpleCSSParser {
 
   def main(args: Array[String]) {
     val noSpace = Set(";", "}", ")", "{", "(", ",", ">", "<", "+")
-    val prefixIndex = args.zipWithIndex filter {case (arg, idx) => arg == "-t"}
-    val target = if (prefixIndex.length > 0)
-      Some(args(prefixIndex(0)._2 + 1))
+    val targetIndex = args.zipWithIndex filter {case (arg, idx) => arg == "-t"}
+    val target = if (targetIndex.length > 0)
+      Some(args(targetIndex(0)._2 + 1))
     else
       None
 
-    val input = if (args.length > 0 && args(0) != "-t") {
-      if (target.isDefined) {
-        val parent = new File(args(0)).getParent
-        val sourceList = if (parent == null || parent == "")
-          List()
-        else
-          parent.split(File.separator).toList
-        this.prefix = computePrefix(sourceList, target.get.split(File.separator).toList).mkString("/")
-        if (!this.prefix.isEmpty)
-          this.prefix += "/"
-      }
+    val sourceIndex = args.zipWithIndex filter {case (arg, idx) => arg == "-s"}
+    val sourcePath = if (sourceIndex.length > 0)
+      Some(args(sourceIndex(0)._2 + 1))
+    else
+      None
+
+    var originalSourcePath = if (sourcePath.isDefined)
+      Some(sourcePath.get)
+    else if (args.length > 0 && args(0) != "-t" && args(0) != "-s")
+      Some(args(0))
+    else
+      None
+
+    if (originalSourcePath.isDefined && target.isDefined) {
+      val parent = new File(originalSourcePath.get).getParent
+      val sourceList = if (parent == null || parent == "")
+        Nil
+      else
+        parent.split(File.separator).toList
+      val destParent = new File(target.get).getParent
+      val destList = if (destParent == null || destParent == "")
+        Nil
+      else
+        destParent.split(File.separator).toList
+
+      this.prefix = computePrefix(sourceList, destList).mkString("/")
+      if (!this.prefix.isEmpty)
+        this.prefix += "/"
+    }
+
+
+    val input = if (args.length > 0 && args(0) != "-t" && args(0) != "-s") {
       io.Source.fromFile(args(0))
     } else {
       io.Source.stdin
     }
+
+
     val result = parseAll(stylesheet, input.getLines().mkString("\n"))
     try {
       val flatResult = flatResultList(result)
