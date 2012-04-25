@@ -66,7 +66,7 @@
       <file leaf-file-name="SimpleCSSParser.scala" pinned="false" current="true" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/src/SimpleCSSParser.scala">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="146" column="18" selection-start="6154" selection-end="6154" vertical-scroll-proportion="0.45803356">
+            <state line="166" column="38" selection-start="6857" selection-end="6857" vertical-scroll-proportion="0.92583436">
               <folding>
                 <element signature="e#0#25#0" expanded="true" />
               </folding>
@@ -533,7 +533,7 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/src/SimpleCSSParser.scala">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="146" column="18" selection-start="6154" selection-end="6154" vertical-scroll-proportion="0.45803356">
+        <state line="166" column="38" selection-start="6857" selection-end="6857" vertical-scroll-proportion="0.92583436">
           <folding>
             <element signature="e#0#25#0" expanded="true" />
           </folding>

@@ -60,7 +60,7 @@ class SimpleCSSParser extends JavaTokenParsers {
   def prio = IMPORTANT_SYM
   def declaration = property ~ ":" ~ expr ~ opt(prio)
   def transform_declaration = """(?i)(?:from|to)""".r ~ "{" ~ rep1(declaration ~ rep(";")) ~ "}"
-  def pseudo = ":" ~ opt((ident ~ "(" ~ (HASH | class_ | ident) ~ ")") | ident)
+  def pseudo = ":" ~ opt((ident ~ "(" ~ (HASH | class_ | ident | NUMBER) ~ ")") | ident)
   def attrib = "[" ~ ident ~ opt(opt("=" | INCLUDES | DASHMATCH) ~ (ident | stringLiteral)) ~ "]"
   def element_name = "*" | ident | "/**/"
   def class_ = "." ~ ident
@@ -164,7 +164,7 @@ object Main extends SimpleCSSParser {
       flatResult.zipWithIndex foreach { case (value, idx) => if (idx > 0 && noSpace.contains(value) && flatResult(idx - 1) == " ") flatResult(idx - 1) = "" }
       print(flatResult.mkString(""))
     } catch {
-      case e: Exception => println(result)
+      case e: Exception => System.err.println(result)
     }
   }
 
